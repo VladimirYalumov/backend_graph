@@ -1,0 +1,31 @@
+Options +FollowSymLinks
+IndexIgnore */*
+RewriteEngine on
+
+RewriteCond %{REQUEST_URI} !^/(basic/web)
+RewriteCond %{REQUEST_URI} !^/(apinote/proc.php)
+RewriteRule ^assets/(.*)$ /basic/web/assets/$1 [L]
+RewriteRule ^css/(.*)$ /basic/web/css/$1 [L]
+RewriteRule ^js/(.*)$ /basic/web/js/$1 [L]
+RewriteRule ^images/(.*)$ /basic/web/images/$1 [L]
+RewriteRule (.*) /basic/web/$1
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /basic/web/index.php
+
+Options +FollowSymLinks
+IndexIgnore */*
+RewriteEngine on
+ 
+RewriteCond %{REQUEST_URI} !^/(basic/web)
+RewriteCond %{REQUEST_URI} !^/(apinote/proc.php)
+RewriteRule ^assets/(.*)$ /basic/web/assets/$1 [L]
+RewriteRule ^css/(.*)$ /basic/web/css/$1 [L]
+RewriteRule ^js/(.*)$ /basic/web/js/$1 [L]
+RewriteRule ^images/(.*)$ /basic/web/images/$1 [L]
+RewriteRule (.*) /basic/web/$1
+ 
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /basic/web/index.php
