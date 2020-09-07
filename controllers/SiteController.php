@@ -54,6 +54,21 @@ class SiteController extends Controller
         return $this->asJson(['success' => true]);
     }
 
+    public function actionDeleteConnect(){
+
+        $raw_data = json_decode(Yii::$app->request->getRawBody());
+
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        try{
+            if(!$this->deleteConnect((int)$raw_data->{'from'}, (int)$raw_data->{'to'}))
+                return $this->asJson(['success' => false, 'msg' => 'Такой связи не существует']);
+        } catch (Exception $e) {
+            return $this->asJson(['success' => false, 'msg' => $e->errorInfo[2]]); 
+        }
+        return $this->asJson(['success' => true]);
+    }
+
     public function actionAddRelation(){
 
         $raw_data = json_decode(Yii::$app->request->getRawBody());
@@ -172,6 +187,19 @@ class SiteController extends Controller
             Connections::deleteAll(['id_from' => $id]);
             Connections::deleteAll(['id_to' => $id]);
             $node->delete();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    protected function deleteConnect($from, $to){
+
+        $connection = Connections::find()
+        ->Where(['id_from' => $from, 'id_to' => $to])
+        ->one();
+        if($connection){
+            $connection->delete();
             return true;
         } else {
             return false;
