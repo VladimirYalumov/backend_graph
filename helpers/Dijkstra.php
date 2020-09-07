@@ -1,6 +1,7 @@
 <?
 namespace app\helpers;
 
+use yii\base\Exception;
 // Собственно говоря алгоритм Дейкстры
 class Dijkstra {
 
@@ -23,7 +24,13 @@ class Dijkstra {
     }
 
     public function getLiteralShortestPath() {
+
         $path = $this->solve();
+
+        if($path == []){
+            return [];
+        }
+
         $literal = [];
         foreach ( $path as $k => $p ) {
             $literal[$k] = $p->getId();
@@ -34,10 +41,17 @@ class Dijkstra {
 
     public function getShortestPath() {
         $path = [];
+
         $node = $this->getEndingNode();
+        
         while ( $node->getId() != $this->getStartingNode()->getId() ) {
+
             $path[] = $node;
-            $node = $node->getPotentialFrom();
+            if($node->getPotentialFrom())
+            $node = $node->getPotentialFrom();  
+            else {        
+                return [];
+            }        
         }
         $path[] = $this->getStartingNode();
         return array_reverse($path);
@@ -58,7 +72,6 @@ class Dijkstra {
     }
 
     public function solve() {
-
         $this->calculatePotentials($this->getStartingNode());
         $this->solution = $this->getShortestPath();
         return $this->solution;

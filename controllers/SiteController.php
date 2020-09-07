@@ -16,13 +16,12 @@ use yii\base\Exception;
 
 class SiteController extends Controller
 {
-
     public function actionTest(){
-        try{
-        } catch (Exception $e) {
-            return $this->asJson(['success' => false, 'msg' => $e->errorInfo[2]]); 
-        }
-        return $this->asJson(['success' => true]);
+        Yii::$app->controller->enableCsrfValidation = false;
+
+        $request = Yii::$app->request;
+
+        return $this->asJson(['success' => false, 'msg' => $request->getBodyParam('from')]);
     }
 
     public function actionAddNode(){
@@ -30,32 +29,24 @@ class SiteController extends Controller
         $get = $request->get();
 
         Yii::$app->response->format = Response::FORMAT_JSON;
+
         try {
             $this->addNode($get['name']);
         } catch (Exception $e) {
             return $this->asJson(['success' => false, 'msg' => $e->errorInfo[2]]); 
         }
-
-        $node = Node::find()->select(['id'])->where(['name' => $get['name']])->one();
-
-        try {           
-            $this->addRelation((int)$get['from_id'], $node['id'], (int)$get['price']); 
-        } catch (Exception $e) {
-            $node->delete();
-            return $this->asJson(['success' => false, 'msg' => $e->errorInfo[2]]); 
-        } 
         
         return $this->asJson(['success' => true]);      
     }
 
     public function actionDeleteNode(){
 
-        $request = Yii::$app->request;
+        $raw_data = json_decode(Yii::$app->request->getRawBody());
 
         Yii::$app->response->format = Response::FORMAT_JSON;
 
         try{
-            if (!$this->deleteNode($request->getBodyParam('id')))
+            if (!$this->deleteNode((int)$raw_data->{'id'}))
             return $this->asJson(['success' => false, 'msg' => 'Такой вершины не существует']);
         } catch (Exception $e) {
             return $this->asJson(['success' => false, 'msg' => $e->errorInfo[2]]); 
@@ -64,12 +55,17 @@ class SiteController extends Controller
     }
 
     public function actionAddRelation(){
-        $request = Yii::$app->request;
-        $get = $request->get();
+
+        $raw_data = json_decode(Yii::$app->request->getRawBody());
 
         Yii::$app->response->format = Response::FORMAT_JSON;
+
         try {
-            $this->addRelation((int)$get['from'], (int)$get['to'], (int)$get['price']);
+            $this->addRelation(
+                (int)$raw_data->{'from'}, 
+                (int)$raw_data->{'to'}, 
+                (int)$raw_data->{'price'}
+            );
         } catch (Exception $e) {
             return $this->asJson(['success' => false, 'msg' => $e->errorInfo[2]]); 
         }
@@ -83,8 +79,19 @@ class SiteController extends Controller
         $graph = [];
         $nodes = $temporaryGraph->nodes;
 
+        $i = 0;
         foreach($nodes as $node){
-            $graph[$node->getId()] = $node->getConnections();
+            $graph[$i]['id'] = (int)$node->getId();
+            $j = 0;
+            foreach ($node->getConnections() as $key => $value) {
+                $graph[$i]['connections'][$j]['node'] = $key;
+                $graph[$i]['connections'][$j]['price'] = $value;
+                $j ++;
+            }
+            if(!$graph[$i]['connections']){
+                $graph[$i]['connections'] = [];
+            }
+            $i++;
         }
 
         \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
@@ -133,16 +140,20 @@ class SiteController extends Controller
         $start_node = $graph->getNode($from);
         $end_node = $graph->getNode($to);
         
+        if ((!$start_node) || (!$end_node)){
+            return $this->asJson(['success' => false, 'msg' => 'Вы ввели несуществующий Node']);
+        } 
+
         $graphForDijkstraAlgorithm->setStartingNode($start_node);
         $graphForDijkstraAlgorithm->setEndingNode($end_node);
 
         Yii::$app->response->format = Response::FORMAT_JSON;
 
-        try{
-            $shortestWay = $graphForDijkstraAlgorithm->getLiteralShortestPath();
-        } catch (Exception $e) {
-            return $this->asJson(['success' => false, 'msg' => $e->errorInfo[2]]); 
-        }
+        $shortestWay = $graphForDijkstraAlgorithm->getLiteralShortestPath();
+
+        if(!$shortestWay){
+            return $this->asJson(['success' => false, 'msg' => 'Из '.$from.' в '.$to.' попасть нельзя']);
+        } 
 
         return $this->asJson(['success' => true, 'way' => $shortestWay]);
     }
